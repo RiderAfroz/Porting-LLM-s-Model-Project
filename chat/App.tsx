@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, SafeAreaView, Pressable } from 'react-native';
 import RNFS from 'react-native-fs'; // For file operations
 import { initLlama } from 'llama.rn';
 
@@ -54,10 +54,10 @@ const App = () => {
     try {
       const result = await context.completion({
         messages: [
-          { role: 'system', content: 'You are a friendly chatbot.' },
+          { role: 'system', content:  'You are a json format generating and friendly chatbot which parse date,time and event from the given sentence and give pure json format {"Date":" ","Time":" ","Event":" " }' },
           { role: 'user', content: message },
         ],
-        n_predict: 50,
+        n_predict: 500,
         temperature: 0.7,
       });
       setResponse(result.text);
@@ -68,7 +68,7 @@ const App = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView style={styles.chatContainer}>
         <Text style={styles.responseText}>{response}</Text>
       </ScrollView>
@@ -77,17 +77,20 @@ const App = () => {
         value={message}
         onChangeText={setMessage}
         placeholder="Type your message..."
+        placeholderTextColor="#A5A5A5"
       />
-      <Button title="Send" onPress={sendCommand} disabled={!context} />
-    </View>
+      <Button title="Send" onPress={sendCommand} disabled={!context} color="#7612FA"  />
+      
+
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  chatContainer: { flex: 1, marginBottom: 10 },
-  responseText: { color: '#000', marginVertical: 5 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 5 },
+  container: { flex: 1, padding: 10,backgroundColor:'#0B1228' },
+  chatContainer: { flex: 1, marginBottom: 10,padding:10,marginTop:25 },
+  responseText: { color: '#fff', marginVertical: 5 },
+  input: { borderWidth: 2, borderColor: '#293C7E', padding: 10, marginBottom: 10, borderRadius: 8,color:'#fff',backgroundColor:'#0F193D' },
 });
 
 export default App;
