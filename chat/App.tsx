@@ -25,8 +25,23 @@ const App: React.FC = () => {
         const localPath = modelPath.replace('file://', '');
         const fileExists = await RNFS.exists(localPath);
         if (!fileExists) {
-          setResponse('Downloading model...');
-          await RNFS.downloadFile({ fromUrl: modelUrl, toFile: localPath }).promise;
+          setResponse('Downloading model... 0 MB');
+
+          const download = RNFS.downloadFile({
+            fromUrl: modelUrl,
+            toFile: localPath,
+            begin: (res) => {
+              const totalSizeMB = (res.contentLength / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              setResponse(`Downloading model... 0 MB / ${totalSizeMB} MB`);
+            },
+            progress: (res) => {
+              const downloadedMB = (res.bytesWritten / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              const totalSizeMB = (res.contentLength / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              setResponse(`Downloading model... ${downloadedMB} MB / ${totalSizeMB} MB`);
+            },
+          });
+
+          await download.promise;
           setResponse('Model downloaded!');
         } else {
           setResponse('Model already exists.');
@@ -41,7 +56,7 @@ const App: React.FC = () => {
         setContext(llamaContext);
         setResponse('Model loaded. Type a command!');
       } catch (err) {
-        setResponse(`Error: ${(err as Error).message}`); // Fixed syntax
+        setResponse(`Error: ${(err as Error).message}`);
       }
     };
     setupModel();
@@ -56,7 +71,7 @@ const App: React.FC = () => {
           {
             role: 'system',
             content: `
-            Generate simple json format if date time given from given text. Parse the date,time and event from the given sentence and give pure json format {"Date":"2025-12-24","Time":"13:00","Event":"appointment" }
+            Generate simple json format if date time given from given text. Parse the date,time and event from the given sentence and give pure json format {"Date":"2025-12-24","Time":"13:00","Event":"appointment" }
             `,
           },
           { role: 'user', content: message },
@@ -69,7 +84,7 @@ const App: React.FC = () => {
       setResponse(taskResult);
       setMessage('');
     } catch (err) {
-      setResponse(`Error: ${(err as Error).message}`); // Fixed syntax
+      setResponse(`Error: ${(err as Error).message}`);
     }
   };
 
