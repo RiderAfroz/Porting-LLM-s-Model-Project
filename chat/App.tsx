@@ -25,8 +25,23 @@ const App: React.FC = () => {
         const localPath = modelPath.replace('file://', '');
         const fileExists = await RNFS.exists(localPath);
         if (!fileExists) {
-          setResponse('Downloading model...');
-          await RNFS.downloadFile({ fromUrl: modelUrl, toFile: localPath }).promise;
+          setResponse('Downloading model... 0 MB');
+
+          const download = RNFS.downloadFile({
+            fromUrl: modelUrl,
+            toFile: localPath,
+            begin: (res) => {
+              const totalSizeMB = (res.contentLength / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              setResponse(`Downloading model... 0 MB / ${totalSizeMB} MB`);
+            },
+            progress: (res) => {
+              const downloadedMB = (res.bytesWritten / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              const totalSizeMB = (res.contentLength / (1024 * 1024)).toFixed(2); // Convert bytes to MB
+              setResponse(`Downloading model... ${downloadedMB} MB / ${totalSizeMB} MB`);
+            },
+          });
+
+          await download.promise;
           setResponse('Model downloaded!');
         } else {
           setResponse('Model already exists.');
@@ -51,7 +66,21 @@ const App: React.FC = () => {
     if (!context || !message.trim()) return;
     setResponse('Processing...');
     try {
-      const taskResult = await routeTask(message, context);
+      const result = await context.completion({
+        messages: [
+          {
+            role: 'system',
+            content: `
+            Generate simple json format if date time given from given text. Parse the date,time and event from the given sentence and give pure json format {"Date":"2025-12-24","Time":"13:00","Event":"appointment" }
+            `,
+          },
+          { role: 'user', content: message },
+        ],
+        n_predict: 500,
+        temperature: 0.7,
+      });
+
+      const taskResult = await routeTask(message, context, result.text);
       setResponse(taskResult);
       setMessage('');
     } catch (err) {
