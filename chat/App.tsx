@@ -41,7 +41,7 @@ const App: React.FC = () => {
         setContext(llamaContext);
         setResponse('Model loaded. Type a command!');
       } catch (err) {
-        setResponse(`Error: ${(err as Error).message}`); // Fixed syntax
+        setResponse(`Error: ${(err as Error).message}`);
       }
     };
     setupModel();
@@ -51,25 +51,11 @@ const App: React.FC = () => {
     if (!context || !message.trim()) return;
     setResponse('Processing...');
     try {
-      const result = await context.completion({
-        messages: [
-          {
-            role: 'system',
-            content: `
-            Generate simple json format if date time given from given text. Parse the date,time and event from the given sentence and give pure json format {"Date":"2025-12-24","Time":"13:00","Event":"appointment" }
-            `,
-          },
-          { role: 'user', content: message },
-        ],
-        n_predict: 500,
-        temperature: 0.7,
-      });
-
-      const taskResult = await routeTask(message, context, result.text);
+      const taskResult = await routeTask(message, context);
       setResponse(taskResult);
       setMessage('');
     } catch (err) {
-      setResponse(`Error: ${(err as Error).message}`); // Fixed syntax
+      setResponse(`Error: ${(err as Error).message}`);
     }
   };
 
