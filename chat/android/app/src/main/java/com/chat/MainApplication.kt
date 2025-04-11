@@ -1,6 +1,8 @@
 package com.chat
 
 import android.app.Application
+import com.chat.DirectCallPackage // ✅ Import your package
+
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -16,11 +18,12 @@ class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
       object : DefaultReactNativeHost(this) {
-        override fun getPackages(): List<ReactPackage> =
-            PackageList(this).packages.apply {
-              // Packages that cannot be autolinked yet can be added manually here, for example:
-              // add(MyReactNativePackage())
-            }
+        override fun getPackages(): List<ReactPackage> {
+          val packages = PackageList(this).packages.toMutableList()
+          packages.add(DirectCallPackage()) // ✅ Add your native module here
+          packages.add(ContactPackage())
+          return packages
+        }
 
         override fun getJSMainModuleName(): String = "index"
 
