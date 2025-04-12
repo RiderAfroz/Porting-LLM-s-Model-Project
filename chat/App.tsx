@@ -19,7 +19,7 @@ const AppContent = () => {
   useEffect(() => {
     const checkFirstLaunch = async () => {
       try {
-        const hasLaunched = await AsyncStorage.getItem('hasLaunche');
+        const hasLaunched = await AsyncStorage.getItem('hasLaunched');
         console.log('AsyncStorage result:', hasLaunched); // Debug
         if (hasLaunched === null) {
           await AsyncStorage.setItem('hasLaunched', 'true');
