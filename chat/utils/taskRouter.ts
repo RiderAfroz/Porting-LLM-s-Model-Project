@@ -3,6 +3,7 @@ import { handleCalendarEvent } from '../tasks/calendar';
 import { handleQA } from '../tasks/qa';
 import { handleCall } from '../tasks/call';
 import { handleContactCall } from '../tasks/ContactCall';
+import { handleOpenApp } from '../tasks/openApp';
 
 export const routeTask = async (
   input: string,
@@ -21,6 +22,10 @@ export const routeTask = async (
     } else {
       return await handleContactCall(context, input); // 📇 Call from contacts
     }
+  }
+
+  if (lowerInput.startsWith('open ') || lowerInput.includes('open app')) {
+    return await handleOpenApp(context, input); // 🚀 Open another application
   }
 
   return await handleQA(context, input); // ❓ Fallback to general QA

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,58 +6,33 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  ActivityIndicator,
 } from 'react-native';
 import Swiper from 'react-native-swiper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App'; // Adjusted path to match project root
+import { RootStackParamList } from '../App'; // Verify path
 
 type IntroScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Intro'>;
 
 export default function Intro() {
-  const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const navigation = useNavigation<IntroScreenNavigationProp>();
 
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      try {
-        const hasLaunched = await AsyncStorage.getItem('hasLaunched');
-        if (hasLaunched === null) {
-          await AsyncStorage.setItem('hasLaunched', 'true');
-          setShowIntro(true);
-        } else {
-          setShowIntro(false);
-        }
-      } catch (error) {
-        console.error('Error checking first launch:', error);
-        setShowIntro(false); // Fallback to skip intro on error
-      }
-    };
-    checkFirstLaunch();
-  }, []);
-
-  if (showIntro === null) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fbd85d" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (!showIntro) {
-    navigation.replace('Chat'); // Changed to 'Chat' to match App.tsx
-    return null;
-  }
-
   return (
-    <Swiper loop={false} showsPagination={true} dotColor="#999" activeDotColor="#fbd85d">
+    <Swiper
+      loop={false}
+      showsPagination={true}
+      dotColor="#999" // Inactive dots (gray)
+      activeDotColor="#fbd85d" // Active dot (yellow)
+    >
       {/* Screen 1 */}
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
-        <Image source={require('./sun2.png')} style={styles.image} resizeMode="contain" />
+        <Image
+          source={require('./llm.png')}
+          style={styles.image}
+          resizeMode="contain"
+          onError={(e) => console.log('Image error sun2.png:', e.nativeEvent.error)}
+        />
         <View style={styles.textContainer}>
           <Text style={styles.title}>
             Meet <Text style={styles.highlight}>Sundae</Text>!
@@ -72,13 +47,19 @@ export default function Intro() {
 
       {/* Screen 2 */}
       <View style={styles.container}>
-        <Image source={require('./tasks.png')} style={styles.image} resizeMode="contain" /> {/* Added image for consistency */}
+        <Image
+          source={require('./tasks.png')}
+          style={styles.image}
+          resizeMode="contain"
+          onError={(e) => console.log('Image error tasks.png:', e.nativeEvent.error)}
+        />
         <Text style={styles.title}>Welcome to Our App!</Text>
         <Text style={styles.description}>We're glad to have you on board.</Text>
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
-            navigation.replace('Chat'); // Changed to 'Chat' to match App.tsx
+            console.log('Get Started pressed');
+            navigation.replace('Chat');
           }}
         >
           <Text style={styles.buttonText}>Get Started</Text>
@@ -91,7 +72,7 @@ export default function Intro() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B030F',
+    backgroundColor: '#000112',
     paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
@@ -145,5 +126,17 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fbd85d',
     marginTop: 10,
+  },
+  pagination: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  paginationText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
