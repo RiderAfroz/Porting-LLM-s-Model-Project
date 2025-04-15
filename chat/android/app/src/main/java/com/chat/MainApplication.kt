@@ -1,7 +1,9 @@
 package com.chat
 
 import android.app.Application
-import com.chat.DirectCallPackage // ✅ Import your package
+import com.chat.DirectCallPackage // ✅ Already imported
+import com.chat.ContactPackage    // ✅ Already imported
+import com.chat.AppLauncherPackage // ✅ ✅ NEW import
 
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -20,8 +22,9 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> {
           val packages = PackageList(this).packages.toMutableList()
-          packages.add(DirectCallPackage()) // ✅ Add your native module here
-          packages.add(ContactPackage())
+          packages.add(DirectCallPackage()) // ✅ Existing package
+          packages.add(ContactPackage())    // ✅ Existing package
+          packages.add(AppLauncherPackage()) // ✅ ✅ Add AppLauncherModule
           return packages
         }
 
