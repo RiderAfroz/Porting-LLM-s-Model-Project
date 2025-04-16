@@ -10,10 +10,17 @@ const appNameToPackageMap: Record<string, string> = {
   gmail: 'com.google.android.gm',
   whatsapp: 'com.whatsapp',
   chrome: 'com.android.chrome',
+  googlechrome: 'com.android.chrome',
   facebook: 'com.facebook.katana',
   instagram: 'com.instagram.android',
   camera: 'com.android.camera',
   messages: 'com.google.android.apps.messaging',
+};
+
+const fallbackPackages: Record<string, string[]> = {
+  youtube: ['com.google.android.youtube', 'com.youtube.android'],
+  photos: ['com.google.android.apps.photos', 'com.android.gallery3d'],
+  chrome: ['com.android.chrome', 'com.google.chrome'],
 };
 
 export const handleOpenApp = async (
@@ -28,10 +35,10 @@ export const handleOpenApp = async (
     const result = await context.completion({
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userInput }
+        { role: 'user', content: userInput },
       ],
       n_predict: 300,
-      temperature: 0.5
+      temperature: 0.5,
     });
 
     const raw = result.text.trim();
@@ -49,35 +56,39 @@ export const handleOpenApp = async (
 
     if (!userAppName) throw new Error('No app name found');
 
-    const appPackage = appNameToPackageMap[userAppName];
+    let appPackages = [appNameToPackageMap[userAppName]];
+    if (fallbackPackages[userAppName]) {
+      appPackages = [...new Set([...appPackages, ...fallbackPackages[userAppName]])];
+    }
 
-    if (!appPackage) {
-      return ` I couldn't find a known app for "${userAppName}". Please try a different app.`;
+    if (!appPackages[0]) {
+      return `I couldn't find a known app for "${userAppName}". Please try a different app.`;
     }
 
     if (Platform.OS === 'android') {
-      const isAvailable = await AppLauncherModule.isAppInstalled(appPackage);
-      if (!isAvailable) {
-        return ` App "${userAppName}" is not installed on this device.`;
+      for (const appPackage of appPackages) {
+        console.log(`Checking package: ${appPackage}`);
+        const isAvailable = await AppLauncherModule.isAppInstalled(appPackage);
+        console.log(`isAppInstalled(${appPackage}): ${isAvailable}`);
+        if (isAvailable) {
+          await AppLauncherModule.launchApp(appPackage);
+          return `Opening ${userAppName}...`;
+        }
       }
-
-      await AppLauncherModule.launchApp(appPackage);
-      return ` Opening ${userAppName}...`;
-
+      return `App "${userAppName}" is not installed or cannot be launched.`;
     } else if (Platform.OS === 'ios') {
-      const appUrlScheme = `${userAppName}://`;
+      const appUrlScheme = userAppName === 'chrome' ? 'googlechrome://' : `${userAppName}://`;
       const supported = await Linking.canOpenURL(appUrlScheme);
       if (!supported) {
-        return ` App "${userAppName}" is not installed or URL scheme is unavailable.`;
+        return `App "${userAppName}" is not installed or URL scheme is unavailable.`;
       }
-
       await Linking.openURL(appUrlScheme);
-      return ` Opening ${userAppName}...`;
+      return `Opening ${userAppName}...`;
     }
 
-    return ' Platform not supported for launching apps.';
+    return 'Platform not supported for launching apps.';
   } catch (err) {
     console.warn('Open App failed:', err);
-    return ` Failed to open app. ${err}`;
+    return `Failed to open app. ${err}`;
   }
 };
