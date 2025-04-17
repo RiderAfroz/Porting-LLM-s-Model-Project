@@ -14,7 +14,6 @@ const cleanJsonString = (jsonStr: string): string => {
     .replace(/,\s*]/g, ']')
     .trim();
 };
-
 /**
  * Normalize time into a consistent format Moment.js can parse reliably
  */
@@ -169,3 +168,7 @@ export const handleCalendarEvent = async (
     return fallbackMsg;
   }
 };
+
+
+
+// by grok

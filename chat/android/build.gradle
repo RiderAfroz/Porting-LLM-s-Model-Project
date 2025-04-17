@@ -1,3 +1,59 @@
+// buildscript {
+//     ext {
+//         buildToolsVersion = "34.0.0"
+//         minSdkVersion = 24
+//         compileSdkVersion = 34
+//         targetSdkVersion = 34
+//         ndkVersion = "25.1.8937393"
+//         kotlinVersion = "1.9.0"
+//     }
+//     repositories {
+//         google()
+//         mavenCentral()
+//         maven { url 'https://jitpack.io' }
+
+//         // Vosk GitHub Maven (updated authentication)
+//         // maven {
+//         //     url = uri("https://maven.pkg.github.com/alphacep/vosk-api")
+//         //     credentials {
+//         //         username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME") ?: ""
+//         //         password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+//         //     }
+//         // }
+//     }
+//     dependencies {
+//         classpath("com.android.tools.build:gradle:8.1.0")
+//         classpath("com.facebook.react:react-native-gradle-plugin:0.74.5")
+//         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+//     }
+// }
+
+// allprojects {
+//     repositories {
+//         google()
+//         mavenCentral()
+//         maven { url 'https://jitpack.io' }
+
+//         // Alternative Vosk mirror (fallback)
+//         // maven { 
+//         //     url 'https://raw.githubusercontent.com/alphacep/vosk-android/master' 
+//         // }
+        
+//         // Primary Vosk repo
+//         // maven {
+//         //     url = uri("https://maven.pkg.github.com/alphacep/vosk-api")
+//         //     credentials {
+//         //         username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME") ?: ""
+//         //         password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+//         //     }
+//         // }
+//     }
+// }
+
+// apply plugin: "com.facebook.react.rootproject"
+
+
+// offline vosk
 buildscript {
     ext {
         buildToolsVersion = "35.0.0"
@@ -12,9 +68,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
- classpath("com.android.tools.build:gradle:7.0.0")
-         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("com.android.tools.build:gradle:8.2.2")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
