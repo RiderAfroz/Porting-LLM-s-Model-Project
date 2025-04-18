@@ -33,7 +33,7 @@ export const routeTask = async (
   }
 
   if (lowerInput.includes('call') || lowerInput.includes('call to')) {
-    const numberMatch = input.match(/\d{6,}/); // Match any number with 6+ digits
+    const numberMatch = input.match(/\d{10,}/); // Match any number with 6+ digits
     if (numberMatch) {
       return await handleCall(context, input); // 📞 Call using number
     } else {

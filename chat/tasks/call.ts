@@ -28,7 +28,7 @@ export const handleCall = async (context: LlamaContext, userInput: string): Prom
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    let number = parsed.Number.trim();
+    let number = parsed.Number;
 
     if (!number) throw new Error('No phone number provided');
 
