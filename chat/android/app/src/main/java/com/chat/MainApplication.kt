@@ -1,6 +1,10 @@
 package com.chat
 
 import android.app.Application
+import com.chat.DirectCallPackage // ✅ Already imported
+import com.chat.ContactPackage    // ✅ Already imported
+import com.chat.AppLauncherPackage // ✅ ✅ NEW import
+
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -14,13 +18,22 @@ import com.facebook.soloader.SoLoader
 
 class MainApplication : Application(), ReactApplication {
 
-  override val reactNativeHost: ReactNativeHost =
-    object : DefaultReactNativeHost(this) {
-      override fun getPackages(): List<ReactPackage> {
-        val packages = PackageList(this).packages.toMutableList()
-        packages.add(DirectCallPackage()) // your custom package
-        packages.add(ContactPackage()) // if you're using it
-        return packages
+  override val reactNativeHost: ReactNativeHost = {
+      object : DefaultReactNativeHost(this) {
+        override fun getPackages(): List<ReactPackage> {
+          val packages = PackageList(this).packages.toMutableList()
+          packages.add(DirectCallPackage()) // ✅ Existing package
+          packages.add(ContactPackage())    // ✅ Existing package
+          packages.add(AppLauncherPackage()) // ✅ ✅ Add AppLauncherModule
+          return packages
+        }
+
+        override fun getJSMainModuleName(): String = "index"
+
+        override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+
+        override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+        override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
       }
 
       override fun getJSMainModuleName(): String = "index"
