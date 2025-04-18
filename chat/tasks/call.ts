@@ -1,14 +1,14 @@
 import { Platform, Alert, PermissionsAndroid, NativeModules } from 'react-native';
 import { LlamaContext } from '../utils/types';
 
-const { DirectCall } = NativeModules; // ✅ Correct native module name
+const { DirectCall } = NativeModules;
 console.log('NativeModules:', NativeModules); // Confirm DirectCall is visible
 
 export const handleCall = async (context: LlamaContext, userInput: string): Promise<string> => {
   try {
     console.log('Raw User Input (Call):', userInput);
 
-    const systemPrompt = `Generate a simple json format for given number given text. Parse the number from the given sentence and give a pure json format like {"Number":""}`;
+    const systemPrompt = `Generate a simple JSON format for the number in the given sentence. Extract only the number and return it as {"Number":""}`;
 
     const result = await context.completion({
       messages: [
@@ -28,9 +28,15 @@ export const handleCall = async (context: LlamaContext, userInput: string): Prom
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const number = parsed.Number;
+    let number = parsed.Number.trim();
 
     if (!number) throw new Error('No phone number provided');
+
+    // ✅ If number is exactly 10 digits, assume Indian number and prefix +91
+    const indian10DigitMatch = /^\d{10}$/;
+    if (indian10DigitMatch.test(number)) {
+      number = '+91' + number;
+    }
 
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -49,7 +55,7 @@ export const handleCall = async (context: LlamaContext, userInput: string): Prom
           throw new Error('Native module "DirectCall" not properly linked');
         }
 
-        DirectCall.call(String(number)); 
+        DirectCall.call(String(number));
         return `📞 Calling ${number}...`;
       } else {
         return `⚠️ Permission denied to make direct call.`;
