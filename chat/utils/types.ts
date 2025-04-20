@@ -15,3 +15,9 @@ export interface LlamaContext {
     notes?: string;
     reminder?: number;
   }
+  // types.ts
+export type RootTabParamList = {
+  Models: undefined;
+  Chat: undefined;
+  Settings: undefined;
+};

@@ -1,0 +1,344 @@
+import React, { useState, useEffect } from 'react';
+import { View, FlatList, Alert, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
+import { Button, Card, ProgressBar, Text, IconButton } from 'react-native-paper';
+import RNFS from 'react-native-fs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type Model = {
+  id: string;
+  name: string;
+  size: number;
+  requiredRAM: number;
+  downloadUrl: string;
+  localPath: string | null;
+  isDownloaded: boolean;
+  isDownloading: boolean;
+  progress: number;
+  description: string;
+};
+
+const MODELS_DIR = `file:///storage/emulated/0/Android/data/com.chat/files//models`;
+const SELECTED_MODEL_KEY = 'selected_model';
+
+const initialModels: Model[] = [
+  {
+    id: 'tinyllama-1.1b',
+    name: 'TinyLlama 1.1B',
+    size: 550000000,
+    requiredRAM: 2,
+    downloadUrl: 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Chat, lightweight tasks'
+  },
+  {
+    id: 'bartowski/gemma-2-2b-it-GGUF/gemma-2-2b-it-Q6_K.gguf',
+    name: 'Gemma-2-2b-it (Q6_K)',
+    size: 2151393120,
+    requiredRAM: 5, // Math.ceil(2151393120 / 500000000) = 5
+    downloadUrl: 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q6_K.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Question Answering, Summarization, Reasoning'
+  },
+  {
+    id: 'TheDrummer/Gemmasutra-Mini-2B-v1-GGUF/Gemmasutra-Mini-2B-v1-Q6_K.gguf',
+    name: 'Gemmasutra-Mini-2B-v1 (Q6_K)',
+    size: 2151393152,
+    requiredRAM: 5, // Math.ceil(2151393152 / 500000000) = 5
+    downloadUrl: 'https://huggingface.co/TheDrummer/Gemmasutra-Mini-2B-v1-GGUF/resolve/main/Gemmasutra-Mini-2B-v1-Q6_K.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Role-play'
+  },
+  {
+    id: 'MaziyarPanahi/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct.Q4_K_M.gguf',
+    name: 'Phi-3.5 mini 4k instruct (Q4_K_M)',
+    size: 2393232608,
+    requiredRAM: 5, // Math.ceil(2393232608 / 500000000) = 5
+    downloadUrl: 'https://huggingface.co/MaziyarPanahi/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct.Q4_K_M.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Reasoning (code & math). Multilingual'
+  },
+  {
+    id: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF/qwen2.5-1.5b-instruct-q8_0.gguf',
+    name: 'Qwen2.5-1.5B-Instruct (Q8_0)',
+    size: 1894532128,
+    requiredRAM: 4, // Math.ceil(1894532128 / 500000000) = 4
+    downloadUrl: 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q8_0.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Instruction following, Role-play, Multilingual'
+  },
+  {
+    id: 'Qwen/Qwen2.5-3B-Instruct-GGUF/qwen2.5-3b-instruct-q5_k_m.gguf',
+    name: 'Qwen2.5-3B-Instruct (Q5_K_M)',
+    size: 2438740384,
+    requiredRAM: 5, // Math.ceil(2438740384 / 500000000) = 5
+    downloadUrl: 'https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q5_k_m.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Instructions, Role-play, Multilingual'
+  },
+  {
+    id: 'hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF/llama-3.2-1b-instruct-q8_0.gguf',
+    name: 'Llama-3.2-1b-instruct (Q8_0)',
+    size: 1321079200,
+    requiredRAM: 3, // Math.ceil(1321079200 / 500000000) = 3
+    downloadUrl: 'https://huggingface.co/hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF/resolve/main/llama-3.2-1b-instruct-q8_0.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Instruction following, Summarization, Rewriting'
+  },
+  {
+    id: 'bartowski/Llama-3.2-3B-Instruct-GGUF/Llama-3.2-3B-Instruct-Q6_K.gguf',
+    name: 'Llama-3.2-3B-Instruct (Q6_K)',
+    size: 2643853856,
+    requiredRAM: 6, // Math.ceil(2643853856 / 500000000) = 6
+    downloadUrl: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Instruction following, Summarization, Rewriting'
+  },
+  {
+    id: 'bartowski/SmolLM2-1.7B-Instruct-GGUF/SmolLM2-1.7B-Instruct-Q8_0.gguf',
+    name: 'SmolLM2-1.7B-Instruct (Q8_0)',
+    size: 1820414944,
+    requiredRAM: 4, // Math.ceil(1820414944 / 500000000) = 4
+    downloadUrl: 'https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q8_0.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Instruction following, Lightweight tasks'
+  }
+];
+
+const ModelsScreen = ({ navigation }) => {
+  const [models, setModels] = useState<Model[]>(initialModels);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load saved models and selection
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await RNFS.mkdir(MODELS_DIR);
+        const [savedModels, savedSelected] = await Promise.all([
+          AsyncStorage.getItem('models'),
+          AsyncStorage.getItem(SELECTED_MODEL_KEY)
+        ]);
+
+        const modelList = savedModels ? JSON.parse(savedModels) : initialModels;
+        const verifiedModels = await verifyModelFiles(modelList);
+        
+        setModels(verifiedModels);
+        setSelectedModelId(savedSelected);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load models');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadModels();
+  }, []);
+
+  const verifyModelFiles = async (modelList: Model[]) => {
+    return Promise.all(modelList.map(async model => ({
+      ...model,
+      isDownloaded: model.localPath ? await RNFS.exists(model.localPath) : false
+    })));
+  };
+
+  const saveModels = async (updatedModels: Model[]) => {
+    await AsyncStorage.setItem('models', JSON.stringify(updatedModels));
+  };
+
+  const handleDownload = async (modelId: string) => {
+    setModels(prev => prev.map(m => 
+      m.id === modelId ? { ...m, isDownloading: true, progress: 0 } : m
+    ));
+
+    try {
+      const model = models.find(m => m.id === modelId)!;
+      const localPath = `${MODELS_DIR}/${modelId}.gguf`;
+
+      await RNFS.downloadFile({
+        fromUrl: model.downloadUrl,
+        toFile: localPath,
+        progress: res => {
+          const progress = Math.floor((res.bytesWritten / res.contentLength) * 100);
+          setModels(prev => prev.map(m =>
+            m.id === modelId ? { ...m, progress } : m
+          ));
+        },
+        progressDivider: 1,
+        begin: () => {
+          console.log('Download started for:', modelId);
+        }
+      }).promise;
+      
+
+      const updatedModels = models.map(m => 
+        m.id === modelId ? { 
+          ...m, 
+          isDownloaded: true, 
+          isDownloading: false, 
+          localPath,
+          progress: 100 
+        } : m
+      );
+
+      setModels(updatedModels);
+      await saveModels(updatedModels);
+    } catch (error) {
+      handleDownloadError(modelId);
+    }
+  };
+
+  const handleDelete = async (modelId: string) => {
+    try {
+      const model = models.find(m => m.id === modelId)!;
+      if (model.localPath) await RNFS.unlink(model.localPath);
+      
+      const updatedModels = models.map(m => 
+        m.id === modelId ? { 
+          ...m, 
+          isDownloaded: false, 
+          localPath: null 
+        } : m
+      );
+
+      setModels(updatedModels);
+      await saveModels(updatedModels);
+      
+      if (selectedModelId === modelId) {
+        await AsyncStorage.removeItem(SELECTED_MODEL_KEY);
+        setSelectedModelId(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete model');
+    }
+  };
+
+  const selectModel = async (modelId: string) => {
+    setSelectedModelId(modelId);
+    await AsyncStorage.setItem(SELECTED_MODEL_KEY, modelId);
+    navigation.navigate('Chat');
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text>Loading models...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={models}
+        renderItem={({ item }) => (
+          <Card style={[
+            styles.card, 
+            selectedModelId === item.id && styles.selectedCard
+          ]}>
+            <Card.Title
+              title={item.name}
+              subtitle={`${(item.size / 1024 / 1024).toFixed(2)}MB | ${item.requiredRAM}GB RAM`}
+              right={() => selectedModelId === item.id && (
+                <IconButton icon="check" color="#4CAF50" size={24} />
+              )}
+            />
+            <Card.Content>
+      <Text style={styles.description}>{item.description}</Text>
+    </Card.Content>
+            <Card.Content>
+              {item.isDownloading && (
+                <>
+                  <ProgressBar 
+                    progress={item.progress / 100} 
+                    color="#6200EE" 
+                  />
+                  <Text>{item.progress.toFixed(0)}%</Text>
+                </>
+              )}
+            </Card.Content>
+            <Card.Actions>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {item.isDownloaded ? (
+                  <>
+                    <Button onPress={() => handleDelete(item.id)}>
+                      Delete
+                    </Button>
+                    <Button 
+                      mode="contained" 
+                      onPress={() => selectModel(item.id)}
+                    >
+                      {selectedModelId === item.id ? 'Selected' : 'Select'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    mode="contained" 
+                    onPress={() => handleDownload(item.id)}
+                    loading={item.isDownloading}
+                  >
+                    Download
+                  </Button>
+                )}
+              </View>
+            </Card.Actions>
+          </Card>
+        )}
+        keyExtractor={item => item.id}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  card: {
+    marginBottom: 16
+  },
+  description: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  selectedCard: {
+    borderWidth: 2,
+    borderColor: '#4CAF50'
+  }
+});
+
+export default ModelsScreen;

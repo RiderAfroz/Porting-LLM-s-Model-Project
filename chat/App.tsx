@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Intro from './screens/intro';
-import ChatScreen from './screens/ChatScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, Text, View } from 'react-native';
 
-export type RootStackParamList = {
-  Intro: undefined;
-  Chat: undefined;
-};
+// Screens
+import Intro from './screens/intro';
+import ChatScreen from './screens/ChatScreen';
+import Models from './screens/Models';
+import Settings from './screens/Settings';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+// Tab Navigator
+const Tab = createBottomTabNavigator();
+// Stack Navigator
+const Stack = createNativeStackNavigator();
 
 const AppContent = () => {
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
@@ -20,7 +23,6 @@ const AppContent = () => {
     const checkFirstLaunch = async () => {
       try {
         const hasLaunched = await AsyncStorage.getItem('hasLaunched');
-        console.log('AsyncStorage result:', hasLaunched); // Debug
         if (hasLaunched === null) {
           await AsyncStorage.setItem('hasLaunched', 'true');
           setIsFirstLaunch(true);
@@ -29,11 +31,32 @@ const AppContent = () => {
         }
       } catch (error) {
         console.error('Error checking first launch:', error);
-        setIsFirstLaunch(false); // Fallback to skip intro
+        setIsFirstLaunch(false);
       }
     };
     checkFirstLaunch();
   }, []);
+
+  const MainTabs = () => {
+    return (
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#fbd85d',
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: {
+            backgroundColor: '#0B030F',
+            borderTopWidth: 0,
+          }
+        }}
+        initialRouteName="Chat" 
+      >
+        <Tab.Screen name="Models" component={Models} />
+        <Tab.Screen name="Chat" component={ChatScreen} />
+        <Tab.Screen name="Settings" component={Settings} />
+      </Tab.Navigator>
+    );
+  };
 
   if (isFirstLaunch === null) {
     return (
@@ -45,13 +68,17 @@ const AppContent = () => {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={isFirstLaunch ? 'Intro' : 'Chat'}>
-      <Stack.Screen name="Intro" component={Intro} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-    </Stack.Navigator>
+    <NavigationContainer>
+      {isFirstLaunch ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Intro" component={Intro} />
+          <Stack.Screen name="Main" component={MainTabs} />
+        </Stack.Navigator>
+      ) : (
+        <MainTabs />
+      )}
+    </NavigationContainer>
   );
 };
 
-export default function App() {
-  return <NavigationContainer><AppContent /></NavigationContainer>;
-}
+export default AppContent;
