@@ -1,9 +1,11 @@
+// utils/taskRouter.ts
 import { LlamaContext } from './types';
 import { handleCalendarEvent } from '../tasks/calendar';
 import { handleQA } from '../tasks/qa';
 import { handleCall } from '../tasks/call';
 import { handleContactCall } from '../tasks/ContactCall';
 import { handleOpenApp } from '../tasks/openApp';
+import { handleAlarm } from '../tasks/alarm'; // Add alarm handler
 
 export const routeTask = async (
   input: string,
@@ -28,25 +30,37 @@ export const routeTask = async (
     'tomorrow',
   ];
 
+  const alarmKeywords = [
+    'alarm',
+    'set alarm',
+    'add alarm',
+    'alarm at',
+    'wake up',
+    'add an alarm',
+    'add a alarm',
+  ];
+
+  // Add alarm routing
+  if (alarmKeywords.some(keyword => lowerInput.includes(keyword))) {
+    return await handleAlarm(context, input);
+  }
+
   if (calendarKeywords.some(keyword => lowerInput.includes(keyword))) {
     return await handleCalendarEvent(context, input);
   }
 
   if (lowerInput.includes('call') || lowerInput.includes('call to')) {
-    const numberMatch = input.match(/\d{10,}/); // Match any number with 6+ digits
+    const numberMatch = input.match(/\d{10,}/);
     if (numberMatch) {
-      return await handleCall(context, input); // 📞 Call using number
+      return await handleCall(context, input);
     } else {
-      return await handleContactCall(context, input); // 📇 Call from contacts
+      return await handleContactCall(context, input);
     }
   }
+
   if (lowerInput.startsWith('open ') || lowerInput.includes('open app')) {
-    return await handleOpenApp(context, input); // 🚀 Open another application
+    return await handleOpenApp(context, input);
   }
 
-  return await handleQA(context, input); // ❓ Fallback to general QA
+  return await handleQA(context, input);
 };
-
-
-
-

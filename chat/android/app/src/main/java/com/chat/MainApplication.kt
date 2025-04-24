@@ -4,6 +4,8 @@ import android.app.Application
 import com.chat.DirectCallPackage
 import com.chat.ContactPackage
 import com.chat.AppLauncherPackage
+import com.rtnmyalarm.MyAlarmPackage;
+
 
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -24,6 +26,7 @@ class MainApplication : Application(), ReactApplication {
       packages.add(DirectCallPackage())
       packages.add(ContactPackage())
       packages.add(AppLauncherPackage())
+      packages.add(MyAlarmPackage())
       return packages
     }
 
