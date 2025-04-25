@@ -21,9 +21,9 @@ export const routeTask = async (
     'reminder for',
     'book meeting',
     'schedule',
-    'add reminder',
+    'reminder',
     'meeting at',
-    'schedule for',
+    'schedule',
     'today',
     'tomorrow',
   ];

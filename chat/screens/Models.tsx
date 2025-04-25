@@ -17,7 +17,7 @@ type Model = {
   description: string;
 };
 
-const MODELS_DIR = `file:///storage/emulated/0/Android/data/com.chat/files//models`;
+const MODELS_DIR = `file:///storage/emulated/0/Android/data/com.chat/files/models`;
 const SELECTED_MODEL_KEY = 'selected_model';
 
 const initialModels: Model[] = [
@@ -34,31 +34,82 @@ const initialModels: Model[] = [
     description: 'Chat, lightweight tasks'
   },
   {
-    id: 'bartowski/gemma-2-2b-it-GGUF/gemma-2-2b-it-Q6_K.gguf',
-    name: 'Gemma-2-2b-it (Q6_K)',
-    size: 2151393120,
-    requiredRAM: 5, // Math.ceil(2151393120 / 500000000) = 5
-    downloadUrl: 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q6_K.gguf',
+    id: 'stablelm-2-zephyr-1_6b-Q4_K_M',
+    name: 'StableLM 2 Zephyr 1.6B (Q4_K_M)',
+    size: 1713507840, // ~1.60 GB
+    requiredRAM: 4, // Math.ceil(1713507840 / 500000000)
+    downloadUrl: 'https://huggingface.co/brittlewis12/stablelm-2-zephyr-1_6b-GGUF/resolve/main/stablelm-2-zephyr-1_6b.Q4_K_M.gguf',
     localPath: null,
     isDownloaded: false,
     isDownloading: false,
     progress: 0,
-    description: 'Question Answering, Summarization, Reasoning'
-  },
+    description: 'Chat and reasoning model. Blend of Stability AI’s StableLM and Zephyr fine-tuning.'
+  }
+,  
   {
-    id: 'TheDrummer/Gemmasutra-Mini-2B-v1-GGUF/Gemmasutra-Mini-2B-v1-Q6_K.gguf',
-    name: 'Gemmasutra-Mini-2B-v1 (Q6_K)',
-    size: 2151393152,
-    requiredRAM: 5, // Math.ceil(2151393152 / 500000000) = 5
-    downloadUrl: 'https://huggingface.co/TheDrummer/Gemmasutra-Mini-2B-v1-GGUF/resolve/main/Gemmasutra-Mini-2B-v1-Q6_K.gguf',
+    id: 'gemma-2-2b-it-Q4_K_M',
+    name: 'Gemma-2-2b-it (Q4_K_M)',
+    size: 1434085216, // actual file size in bytes (~1.43 GB)
+    requiredRAM: 3, // Math.ceil(1434085216 / 500000000) = 3
+    downloadUrl: 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf',
     localPath: null,
     isDownloaded: false,
     isDownloading: false,
     progress: 0,
-    description: 'Role-play'
+    description: 'Instruction-tuned Gemma 2B for chat, reasoning, and general tasks under low RAM.'
+  }
+  ,
+  {
+    id: 'DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M',
+    name: 'DeepSeek R1 Distill Qwen 1.5B (Q4_K_M)',
+    size: 1572134400, // ~1.46 GB
+    requiredRAM: 4, // Math.ceil(1572134400 / 500000000)
+    downloadUrl: 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B.Q4_K_M.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Chat & reasoning optimized. Distilled from DeepSeek LLM.'
   },
   {
-    id: 'MaziyarPanahi/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct.Q4_K_M.gguf',
+    id: 'phi-2-Q4_K_M',
+    name: 'Phi-2 (Q4_K_M)',
+    size: 1426854400, // ~1.33 GB
+    requiredRAM: 3, // Math.ceil(1426854400 / 500000000)
+    downloadUrl: 'https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'General-purpose reasoning & text. Trained by Microsoft.'
+  },
+  {
+    id: 'deepseek-coder-1.3b-instruct',
+    name: 'DeepSeek Coder 1.3B Instruct',
+    size: 2600000000, // Approx. for full model, not quantized
+    requiredRAM: 6, // Math.ceil(2600000000 / 500000000)
+    downloadUrl: 'https://huggingface.co/deepseek-ai/deepseek-coder-1.3b-instruct/resolve/main/model.safetensors',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Code generation and instruction following. Optimized for programming tasks.'
+  },
+  {
+    id: 'OpenGPT-3-Q5_K_S',
+    name: 'OpenGPT-3 (Q5_K_S)',
+    size: 1711144960, // ~1.59 GB
+    requiredRAM: 4, // Math.ceil(1711144960 / 500000000)
+    downloadUrl: 'https://huggingface.co/mradermacher/OpenGPT-3-GGUF/resolve/main/OpenGPT-3.Q5_K_S.gguf',
+    localPath: null,
+    isDownloaded: false,
+    isDownloading: false,
+    progress: 0,
+    description: 'Compact GPT-3-style model. Great for general chat and logic.'
+  }
+,  
+  {
+    id: 'Phi-3.5-mini-instruct.Q4_K_M',
     name: 'Phi-3.5 mini 4k instruct (Q4_K_M)',
     size: 2393232608,
     requiredRAM: 5, // Math.ceil(2393232608 / 500000000) = 5
@@ -70,7 +121,7 @@ const initialModels: Model[] = [
     description: 'Reasoning (code & math). Multilingual'
   },
   {
-    id: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF/qwen2.5-1.5b-instruct-q8_0.gguf',
+    id: 'qwen2.5-1.5b-instruct-q8_0',
     name: 'Qwen2.5-1.5B-Instruct (Q8_0)',
     size: 1894532128,
     requiredRAM: 4, // Math.ceil(1894532128 / 500000000) = 4
@@ -82,7 +133,7 @@ const initialModels: Model[] = [
     description: 'Instruction following, Role-play, Multilingual'
   },
   {
-    id: 'Qwen/Qwen2.5-3B-Instruct-GGUF/qwen2.5-3b-instruct-q5_k_m.gguf',
+    id: 'qwen2.5-3b-instruct-q5_k_m',
     name: 'Qwen2.5-3B-Instruct (Q5_K_M)',
     size: 2438740384,
     requiredRAM: 5, // Math.ceil(2438740384 / 500000000) = 5
@@ -94,7 +145,7 @@ const initialModels: Model[] = [
     description: 'Instructions, Role-play, Multilingual'
   },
   {
-    id: 'hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF/llama-3.2-1b-instruct-q8_0.gguf',
+    id: 'llama-3.2-1b-instruct-q8_0',
     name: 'Llama-3.2-1b-instruct (Q8_0)',
     size: 1321079200,
     requiredRAM: 3, // Math.ceil(1321079200 / 500000000) = 3
@@ -106,7 +157,7 @@ const initialModels: Model[] = [
     description: 'Instruction following, Summarization, Rewriting'
   },
   {
-    id: 'bartowski/Llama-3.2-3B-Instruct-GGUF/Llama-3.2-3B-Instruct-Q6_K.gguf',
+    id: 'Llama-3.2-3B-Instruct-Q6_K',
     name: 'Llama-3.2-3B-Instruct (Q6_K)',
     size: 2643853856,
     requiredRAM: 6, // Math.ceil(2643853856 / 500000000) = 6
@@ -117,18 +168,7 @@ const initialModels: Model[] = [
     progress: 0,
     description: 'Instruction following, Summarization, Rewriting'
   },
-  {
-    id: 'bartowski/SmolLM2-1.7B-Instruct-GGUF/SmolLM2-1.7B-Instruct-Q8_0.gguf',
-    name: 'SmolLM2-1.7B-Instruct (Q8_0)',
-    size: 1820414944,
-    requiredRAM: 4, // Math.ceil(1820414944 / 500000000) = 4
-    downloadUrl: 'https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q8_0.gguf',
-    localPath: null,
-    isDownloaded: false,
-    isDownloading: false,
-    progress: 0,
-    description: 'Instruction following, Lightweight tasks'
-  }
+  
 ];
 
 const ModelsScreen = ({ navigation }) => {
