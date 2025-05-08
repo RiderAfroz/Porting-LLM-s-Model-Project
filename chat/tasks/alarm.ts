@@ -12,7 +12,17 @@ export const handleAlarm = async (
         console.log('Raw User Input:', userInput);
 
         // Clear and specific prompt for a single alarm
-        const systemPrompt = `Generate a simple JSON format if a day or time is given from the provided text. Parse the Day (e.g., "Monday", "Saturday") and Time, returning a pure JSON format like {"Day":"Saturday","Time":"08:00"}. If no valid day or time is found, return {"Day":null,"Time":null}`;
+        const systemPrompt = `
+        You are a strict JSON generator. Extract a day of the week and a time (in 24-hour HH:mm format) from the user's sentence.
+        
+        Reply ONLY with raw JSON. Do NOT include markdown, explanations, or extra text.
+        
+        If either value is missing or invalid, use null.
+        
+        Examples:
+        Input: "Set an alarm on Monday at 8 AM" → {"Day":"Monday","Time":"08:00"}`;
+
+        userInput = userInput.charAt(0).toUpperCase() + userInput.slice(1).toLowerCase();
 
         completionResponse = await context.completion({
             messages: [

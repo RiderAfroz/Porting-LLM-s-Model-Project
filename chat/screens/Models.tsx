@@ -44,8 +44,7 @@ const initialModels: Model[] = [
     isDownloading: false,
     progress: 0,
     description: 'Chat and reasoning model. Blend of Stability AI’s StableLM and Zephyr fine-tuning.'
-  }
-,  
+  },
   {
     id: 'gemma-2-2b-it-Q4_K_M',
     name: 'Gemma-2-2b-it (Q4_K_M)',
@@ -57,8 +56,7 @@ const initialModels: Model[] = [
     isDownloading: false,
     progress: 0,
     description: 'Instruction-tuned Gemma 2B for chat, reasoning, and general tasks under low RAM.'
-  }
-  ,
+  },
   {
     id: 'DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M',
     name: 'DeepSeek R1 Distill Qwen 1.5B (Q4_K_M)',
@@ -106,8 +104,7 @@ const initialModels: Model[] = [
     isDownloading: false,
     progress: 0,
     description: 'Compact GPT-3-style model. Great for general chat and logic.'
-  }
-,  
+  },
   {
     id: 'Phi-3.5-mini-instruct.Q4_K_M',
     name: 'Phi-3.5 mini 4k instruct (Q4_K_M)',
@@ -168,7 +165,6 @@ const initialModels: Model[] = [
     progress: 0,
     description: 'Instruction following, Summarization, Rewriting'
   },
-  
 ];
 
 const ModelsScreen = ({ navigation }) => {
@@ -188,7 +184,7 @@ const ModelsScreen = ({ navigation }) => {
 
         const modelList = savedModels ? JSON.parse(savedModels) : initialModels;
         const verifiedModels = await verifyModelFiles(modelList);
-        
+
         setModels(verifiedModels);
         setSelectedModelId(savedSelected);
       } catch (error) {
@@ -213,7 +209,7 @@ const ModelsScreen = ({ navigation }) => {
   };
 
   const handleDownload = async (modelId: string) => {
-    setModels(prev => prev.map(m => 
+    setModels(prev => prev.map(m =>
       m.id === modelId ? { ...m, isDownloading: true, progress: 0 } : m
     ));
 
@@ -235,15 +231,14 @@ const ModelsScreen = ({ navigation }) => {
           console.log('Download started for:', modelId);
         }
       }).promise;
-      
 
-      const updatedModels = models.map(m => 
-        m.id === modelId ? { 
-          ...m, 
-          isDownloaded: true, 
-          isDownloading: false, 
+      const updatedModels = models.map(m =>
+        m.id === modelId ? {
+          ...m,
+          isDownloaded: true,
+          isDownloading: false,
           localPath,
-          progress: 100 
+          progress: 100
         } : m
       );
 
@@ -258,18 +253,18 @@ const ModelsScreen = ({ navigation }) => {
     try {
       const model = models.find(m => m.id === modelId)!;
       if (model.localPath) await RNFS.unlink(model.localPath);
-      
-      const updatedModels = models.map(m => 
-        m.id === modelId ? { 
-          ...m, 
-          isDownloaded: false, 
-          localPath: null 
+
+      const updatedModels = models.map(m =>
+        m.id === modelId ? {
+          ...m,
+          isDownloaded: false,
+          localPath: null
         } : m
       );
 
       setModels(updatedModels);
       await saveModels(updatedModels);
-      
+
       if (selectedModelId === modelId) {
         await AsyncStorage.removeItem(SELECTED_MODEL_KEY);
         setSelectedModelId(null);
@@ -288,70 +283,86 @@ const ModelsScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text>Loading models...</Text>
+        <ActivityIndicator size="large" color="#8B5CF6" />
+        <Text style={styles.loadingText}>Loading models...</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>MODELS</Text>
+      </View>
       <FlatList
         data={models}
         renderItem={({ item }) => (
           <Card style={[
-            styles.card, 
+            styles.card,
             selectedModelId === item.id && styles.selectedCard
           ]}>
             <Card.Title
               title={item.name}
+              titleStyle={styles.cardTitle}
               subtitle={`${(item.size / 1024 / 1024).toFixed(2)}MB | ${item.requiredRAM}GB RAM`}
+              subtitleStyle={styles.cardSubtitle}
               right={() => selectedModelId === item.id && (
-                <IconButton icon="check" color="#4CAF50" size={24} />
+                <IconButton icon="check" color="#8B5CF6" size={24} />
               )}
             />
             <Card.Content>
-      <Text style={styles.description}>{item.description}</Text>
-    </Card.Content>
+              <Text style={styles.description}>{item.description}</Text>
+            </Card.Content>
             <Card.Content>
               {item.isDownloading && (
                 <>
-                  <ProgressBar 
-                    progress={item.progress / 100} 
-                    color="#6200EE" 
+                  <ProgressBar
+                    progress={item.progress / 100}
+                    color="#8B5CF6"
                   />
-                  <Text>{item.progress.toFixed(0)}%</Text>
+                  <Text style={styles.progressText}>{item.progress.toFixed(0)}%</Text>
                 </>
               )}
             </Card.Content>
-            <Card.Actions>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {item.isDownloaded ? (
-                  <>
-                    <Button onPress={() => handleDelete(item.id)}>
-                      Delete
-                    </Button>
-                    <Button 
-                      mode="contained" 
-                      onPress={() => selectModel(item.id)}
-                    >
-                      {selectedModelId === item.id ? 'Selected' : 'Select'}
-                    </Button>
-                  </>
-                ) : (
-                  <Button 
-                    mode="contained" 
-                    onPress={() => handleDownload(item.id)}
-                    loading={item.isDownloading}
+            <Card.Actions style={styles.cardActions}>
+              {item.isDownloaded ? (
+                <>
+                  <Button
+                    mode="outlined"
+                    onPress={() => handleDelete(item.id)}
+                    style={styles.button}
+                    labelStyle={styles.buttonLabel}
+                    disabled={false}
                   >
-                    Download
+                    Delete
                   </Button>
-                )}
-              </View>
+                  <Button
+                    mode="contained"
+                    onPress={() => selectModel(item.id)}
+                    style={styles.button}
+                    labelStyle={styles.buttonLabel}
+                    disabled={false}
+                  >
+                    {selectedModelId === item.id ? 'Selected' : 'Select'}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  mode="contained"
+                  onPress={() => handleDownload(item.id)}
+                  loading={item.isDownloading}
+                  style={styles.button}
+                  labelStyle={styles.buttonLabel}
+                  disabled={item.isDownloading}
+                >
+                  Download
+                </Button>
+              )}
             </Card.Actions>
           </Card>
         )}
         keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContainer}
       />
     </SafeAreaView>
   );
@@ -360,25 +371,84 @@ const ModelsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16
+    backgroundColor: '#0B0F19',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+    backgroundColor: '#101626',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'grey',
+    fontFamily: 'sans-serif',
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  card: {
+    backgroundColor: '#1E293B',
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  selectedCard: {
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+  },
+  cardTitle: {
+    fontSize: 16,
+    color: '#E5E7EB',
+    fontFamily: 'sans-serif',
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'sans-serif',
+  },
+  description: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'sans-serif',
+    marginTop: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#E5E7EB',
+    fontFamily: 'sans-serif',
+    marginTop: 4,
+  },
+  button: {
+    marginLeft: 8,
+    borderRadius: 24,
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  buttonLabel: {
+    fontSize: 14,
+    color: '#F9FAFB',
+    fontFamily: 'sans-serif',
+  },
+  cardActions: {
+    justifyContent: 'flex-end',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    backgroundColor: '#0B0F19',
   },
-  card: {
-    marginBottom: 16
+  loadingText: {
+    marginTop: 8,
+    fontSize: 17,
+    color: '#E5E7EB',
+    fontFamily: 'sans-serif',
   },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  selectedCard: {
-    borderWidth: 2,
-    borderColor: '#4CAF50'
-  }
 });
 
 export default ModelsScreen;

@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, Text, View } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Screens
 import Intro from './screens/intro';
@@ -42,18 +43,54 @@ const AppContent = () => {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#fbd85d',
+          tabBarActiveTintColor: '#F5F4FF',
           tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
             backgroundColor: '#0B030F',
             borderTopWidth: 0,
-          }
+          },
         }}
-        initialRouteName="Chat" 
+        initialRouteName="Chat"
       >
-        <Tab.Screen name="Models" component={Models} />
-        <Tab.Screen name="Chat" component={ChatScreen} />
-        <Tab.Screen name="Settings" component={Settings} />
+        <Tab.Screen
+          name="Models"
+          component={Models}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <Icon
+                name="folder"
+                size={24}
+                color={focused ? '#F5F4FF' : 'gray'}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <Icon
+                name="chat"
+                size={24}
+                color={focused ? '#F5F4FF' : 'gray'}
+              />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={Settings}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <Icon
+                name="settings"
+                size={24}
+                color={focused ? '#F5F4FF' : 'gray'}
+              />
+            ),
+          }}
+        />
       </Tab.Navigator>
     );
   };
