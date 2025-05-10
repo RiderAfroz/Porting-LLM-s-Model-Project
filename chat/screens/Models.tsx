@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Alert, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, FlatList, Alert, StyleSheet, ActivityIndicator, SafeAreaView} from 'react-native';
 import { Button, Card, ProgressBar, Text, IconButton } from 'react-native-paper';
 import RNFS from 'react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +17,7 @@ type Model = {
   description: string;
 };
 
-const MODELS_DIR = `file:///storage/emulated/0/Android/data/com.chat/files/models`;
+const MODELS_DIR = RNFS.ExternalDirectoryPath + '/models';
 const SELECTED_MODEL_KEY = 'selected_model';
 
 const initialModels: Model[] = [
@@ -277,8 +277,7 @@ const ModelsScreen = ({ navigation }) => {
   const selectModel = async (modelId: string) => {
     setSelectedModelId(modelId);
     await AsyncStorage.setItem(SELECTED_MODEL_KEY, modelId);
-    navigation.navigate('Chat');
-  };
+navigation.navigate('Chat', { selectedModelId: modelId });  };
 
   if (isLoading) {
     return (
