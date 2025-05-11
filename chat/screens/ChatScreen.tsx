@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Image } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import LinearGradient from 'react-native-linear-gradient';
@@ -48,6 +48,7 @@ const ChatScreen = ({ navigation }) => {
   const [currentModel, setCurrentModel] = useState('');
   const [errorCount, setErrorCount] = useState(0);
   const [modelError, setModelError] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     LogBox.ignoreLogs(['new NativeEventEmitter']);
@@ -151,7 +152,7 @@ const ChatScreen = ({ navigation }) => {
       });
 
       currentIndex++;
-      setTimeout(typeNextWord, 60 + Math.random() * 40);
+      typingTimeoutRef.current = setTimeout(typeNextWord, 60 + Math.random() * 40);
     };
 
     typeNextWord();
@@ -213,6 +214,24 @@ const ChatScreen = ({ navigation }) => {
       Alert.alert('Error', `Failed to generate response: ${errorMessage}`);
       setIsLoading(false);
     }
+  };
+
+  const handleStopGeneration = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    setMessages((prev) => {
+      const updated = [...prev];
+      const last = updated[updated.length - 1];
+      if (last?.type === 'loading') {
+        updated.pop(); // Remove loading message if no response yet
+      } else if (last?.type === 'bot') {
+        // Keep the partial response as is
+      }
+      return updated;
+    });
+    setIsLoading(false);
   };
 
   const startListening = () => {
@@ -352,7 +371,8 @@ const ChatScreen = ({ navigation }) => {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={80}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80} // Adjusted for header and safe area
+        style={{ flex: 0 }}
       >
         <View style={styles.inputWrapper}>
           <TextInput
@@ -366,18 +386,28 @@ const ChatScreen = ({ navigation }) => {
             onError={(e) => console.error('TextInput error:', e)}
           />
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleSend}
-              disabled={!context || isLoading || isListening}
-              onPressIn={() => console.log('Send button pressed')}
-            >
-              <Icon
-                name="send"
-                size={24}
-                color={!context || isLoading || isListening ? '#aaa' : '#888'}
-              />
-            </TouchableOpacity>
+            {isLoading ? (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleStopGeneration}
+                onPressIn={() => console.log('Stop button pressed')}
+              >
+                <Icon name="stop" size={24} color="#888" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleSend}
+                disabled={!context || isLoading || isListening}
+                onPressIn={() => console.log('Send button pressed')}
+              >
+                <Icon
+                  name="send"
+                  size={24}
+                  color={!context || isLoading || isListening ? '#aaa' : '#888'}
+                />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.iconButton}
               onPress={startListening}
@@ -540,7 +570,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    marginHorizontal: 14, // Increased from 16 to 24 to reduce width
+    marginHorizontal: 14,
     marginVertical: 12,
   },
   input: {
@@ -552,6 +582,7 @@ const styles = StyleSheet.create({
     fontFamily: 'sans-serif',
     paddingVertical: 14,
     paddingRight: 80,
+    paddingLeft: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -560,7 +591,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
   },
   listeningContainer: {
     position: 'absolute',
