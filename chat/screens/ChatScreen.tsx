@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Image } from 'react-native';
+import { Image, Modal, TouchableOpacity as RNTouchableOpacity } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   FlatList,
   StyleSheet,
   Alert,
@@ -26,9 +26,16 @@ import { routeTask } from '../utils/taskRouter';
 const MODELS_DIR = RNFS.ExternalDirectoryPath + '/models';
 
 const SELECTED_MODEL_KEY = 'selected_model';
+const TASK_HISTORY_KEY = 'task_history';
+
 const getCurrentTime = () => {
   const now = new Date();
   return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const getCurrentDateTime = () => {
+  const now = new Date();
+  return now.toLocaleString();
 };
 
 type Message = {
@@ -38,7 +45,14 @@ type Message = {
   responseTime?: string;
 };
 
-const ChatScreen = ({ navigation }) => {
+type Task = {
+  id: string;
+  input: string;
+  taskType: string;
+  dateTime: string;
+};
+
+const ChatScreen = ({ navigation, route }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [context, setContext] = useState<LlamaContext | null>(null);
@@ -48,6 +62,9 @@ const ChatScreen = ({ navigation }) => {
   const [currentModel, setCurrentModel] = useState('');
   const [errorCount, setErrorCount] = useState(0);
   const [modelError, setModelError] = useState<string | null>(null);
+  const [taskHistory, setTaskHistory] = useState<Task[]>([]);
+  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const modelId = route.params?.selectedModelId;
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -57,7 +74,8 @@ const ChatScreen = ({ navigation }) => {
   useEffect(() => {
     const initializeModel = async () => {
       try {
-        const selectedModelId = await AsyncStorage.getItem(SELECTED_MODEL_KEY);
+        // Use the model ID from params if available, otherwise check AsyncStorage
+        let selectedModelId = modelId || (await AsyncStorage.getItem(SELECTED_MODEL_KEY));
         if (!selectedModelId) {
           throw new Error('No model selected. Please select a model to start chatting.');
         }
@@ -97,18 +115,35 @@ const ChatScreen = ({ navigation }) => {
       }
     };
 
+    const loadTaskHistory = async () => {
+      try {
+        const history = await AsyncStorage.getItem(TASK_HISTORY_KEY);
+        if (history) {
+          setTaskHistory(JSON.parse(history));
+        }
+      } catch (error) {
+        console.error('Error loading task history:', error);
+      }
+    };
+
     initializeModel();
+    loadTaskHistory();
 
     return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
       if (context) {
         try {
           context.release();
+          setContext(null);
         } catch (releaseError) {
           console.error('Error releasing context:', releaseError);
         }
       }
     };
-  }, []);
+  }, [modelId]);
 
   const LoadingDots = () => {
     const [dots, setDots] = useState('');
@@ -121,6 +156,32 @@ const ChatScreen = ({ navigation }) => {
     }, []);
 
     return <Text style={styles.loadingText}>Generating{dots}</Text>;
+  };
+
+  const saveTaskToHistory = async (input: string, taskType: string) => {
+    try {
+      const newTask: Task = {
+        id: Math.random().toString(36).substr(2, 9),
+        input,
+        taskType,
+        dateTime: getCurrentDateTime(),
+      };
+      const updatedHistory = [newTask, ...taskHistory];
+      setTaskHistory(updatedHistory);
+      await AsyncStorage.setItem(TASK_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Error saving task to history:', error);
+    }
+  };
+
+  const clearTaskHistory = async () => {
+    try {
+      setTaskHistory([]);
+      await AsyncStorage.setItem(TASK_HISTORY_KEY, JSON.stringify([]));
+    } catch (error) {
+      console.error('Error clearing task history:', error);
+      Alert.alert('Error', 'Failed to clear task history');
+    }
   };
 
   const displayWordByWord = (response: string, startTime: number) => {
@@ -137,6 +198,7 @@ const ChatScreen = ({ navigation }) => {
           return updated;
         });
         setIsLoading(false);
+        typingTimeoutRef.current = null;
         return;
       }
 
@@ -156,6 +218,24 @@ const ChatScreen = ({ navigation }) => {
     };
 
     typeNextWord();
+  };
+
+  const handleStopGeneration = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    setMessages((prev) => {
+      const updated = [...prev];
+      const last = updated[updated.length - 1];
+      if (last?.type === 'loading') {
+        updated.pop(); // Remove loading message if no response yet
+      } else if (last?.type === 'bot') {
+        // Keep the partial response as is
+      }
+      return updated;
+    });
+    setIsLoading(false);
   };
 
   const handleSend = async () => {
@@ -178,7 +258,7 @@ const ChatScreen = ({ navigation }) => {
 
     try {
       const startTime = Date.now();
-      const response = await routeTask(userMessage.text, context);
+      const response = await routeTask(userMessage.text, context, saveTaskToHistory);
 
       if (!response || typeof response !== 'string') {
         throw new Error('Invalid response from routeTask');
@@ -214,24 +294,6 @@ const ChatScreen = ({ navigation }) => {
       Alert.alert('Error', `Failed to generate response: ${errorMessage}`);
       setIsLoading(false);
     }
-  };
-
-  const handleStopGeneration = () => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
-    setMessages((prev) => {
-      const updated = [...prev];
-      const last = updated[updated.length - 1];
-      if (last?.type === 'loading') {
-        updated.pop(); // Remove loading message if no response yet
-      } else if (last?.type === 'bot') {
-        // Keep the partial response as is
-      }
-      return updated;
-    });
-    setIsLoading(false);
   };
 
   const startListening = () => {
@@ -286,11 +348,19 @@ const ChatScreen = ({ navigation }) => {
     </View>
   );
 
+  const renderTask = ({ item }: { item: Task }) => (
+    <View style={styles.taskItem}>
+      <Text style={styles.taskType}>{item.taskType}</Text>
+      <Text style={styles.taskText}>{item.input}</Text>
+      <Text style={styles.taskDateTime}>{item.dateTime}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         {currentModel && (
-          <TouchableOpacity
+          <RNTouchableOpacity
             style={styles.modelContainer}
             onPress={() => {
               try {
@@ -303,8 +373,17 @@ const ChatScreen = ({ navigation }) => {
           >
             <Text style={styles.modelName}>{currentModel}</Text>
             <Icon name="arrow-drop-down" size={24} color="grey" />
-          </TouchableOpacity>
+          </RNTouchableOpacity>
         )}
+        <RNTouchableOpacity
+          style={styles.rightButton}
+          onPress={() => setIsHistoryModalVisible(true)}
+        >
+          <Image
+            source={require('../assets/list.png')}
+            style={[styles.iconImage, { tintColor: 'white' }]}
+          />
+        </RNTouchableOpacity>
       </View>
 
       {!context && !modelError ? (
@@ -315,16 +394,17 @@ const ChatScreen = ({ navigation }) => {
       ) : !context && modelError ? (
         <View style={styles.welcomeContainer}>
           <Text style={styles.errorText}>{modelError}</Text>
-          <TouchableOpacity
+          <RNTouchableOpacity
             style={styles.selectModelButton}
             onPress={() => navigation.navigate('Models')}
           >
             <Text style={styles.selectModelButtonText}>Go to Models Screen</Text>
-          </TouchableOpacity>
+          </RNTouchableOpacity>
         </View>
       ) : messages.length === 0 ? (
         <View style={styles.welcomeContainer}>
           <MaskedView
+
             maskElement={
               <View style={styles.maskContainer}>
                 <Text style={[styles.welcomeText, { backgroundColor: 'transparent' }]}>
@@ -352,27 +432,62 @@ const ChatScreen = ({ navigation }) => {
           contentContainerStyle={styles.messagesContainer}
           onError={(error) => console.error('FlatList error:', error)}
         />
-      )}
+      )
+      }
 
-      {isListening && (
-        <View style={styles.listeningContainer}>
-          <AudioWaveform />
-          <Text style={styles.listeningText}>🎙️ Listening...</Text>
-          <View style={styles.controls}>
-            <TouchableOpacity onPress={stopListening} style={styles.controlButton}>
-              <Icon name="check-circle" size={28} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={cancelListening} style={styles.controlButton}>
-              <Icon name="cancel" size={28} color="#fff" />
-            </TouchableOpacity>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isHistoryModalVisible}
+        onRequestClose={() => setIsHistoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Task History</Text>
+              <RNTouchableOpacity
+                style={styles.clearButton}
+                onPress={clearTaskHistory}
+              >
+                <Text style={styles.clearButtonText}>Clear</Text>
+              </RNTouchableOpacity>
+              <RNTouchableOpacity onPress={() => setIsHistoryModalVisible(false)}>
+                <Icon name="close" size={24} color="#fff" />
+              </RNTouchableOpacity>
+            </View>
+            <FlatList
+              data={taskHistory}
+              renderItem={renderTask}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.taskList}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No tasks yet</Text>
+              }
+            />
           </View>
         </View>
-      )}
+      </Modal>
+
+      {
+        isListening && (
+          <View style={styles.listeningContainer}>
+            <AudioWaveform />
+            <Text style={styles.listeningText}>🎙️ Listening...</Text>
+            <View style={styles.controls}>
+              <RNTouchableOpacity onPress={stopListening} style={styles.controlButton}>
+                <Icon name="check-circle" size={28} color="#fff" />
+              </RNTouchableOpacity>
+              <RNTouchableOpacity onPress={cancelListening} style={styles.controlButton}>
+                <Icon name="cancel" size={28} color="#fff" />
+              </RNTouchableOpacity>
+            </View>
+          </View>
+        )
+      }
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80} // Adjusted for header and safe area
-        style={{ flex: 0 }}
+        keyboardVerticalOffset={80}
       >
         <View style={styles.inputWrapper}>
           <TextInput
@@ -387,15 +502,15 @@ const ChatScreen = ({ navigation }) => {
           />
           <View style={styles.buttonContainer}>
             {isLoading ? (
-              <TouchableOpacity
+              <RNTouchableOpacity
                 style={styles.iconButton}
                 onPress={handleStopGeneration}
                 onPressIn={() => console.log('Stop button pressed')}
               >
                 <Icon name="stop" size={24} color="#888" />
-              </TouchableOpacity>
+              </RNTouchableOpacity>
             ) : (
-              <TouchableOpacity
+              <RNTouchableOpacity
                 style={styles.iconButton}
                 onPress={handleSend}
                 disabled={!context || isLoading || isListening}
@@ -406,9 +521,9 @@ const ChatScreen = ({ navigation }) => {
                   size={24}
                   color={!context || isLoading || isListening ? '#aaa' : '#888'}
                 />
-              </TouchableOpacity>
+              </RNTouchableOpacity>
             )}
-            <TouchableOpacity
+            <RNTouchableOpacity
               style={styles.iconButton}
               onPress={startListening}
               disabled={!context || isLoading || isListening}
@@ -419,11 +534,11 @@ const ChatScreen = ({ navigation }) => {
                 size={24}
                 color={!context || isLoading || isListening ? '#aaa' : '#888'}
               />
-            </TouchableOpacity>
+            </RNTouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </View >
   );
 };
 
@@ -434,29 +549,19 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
+    paddingVertical: 15,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#101626',
   },
   modelContainer: {
     alignItems: 'center',
   },
   modelName: {
-    fontSize: 14,
+    fontSize: 15.5,
+    paddingTop: 7,
     color: '#9CA3AF',
     fontFamily: 'sans-serif',
-  },
-  modelStatus: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    fontFamily: 'sans-serif',
-  },
-  arrowButton: {
-    padding: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -477,6 +582,16 @@ const styles = StyleSheet.create({
   maskContainer: {
     backgroundColor: 'transparent',
     alignItems: 'center',
+  },
+  rightButton: {
+    padding: 8,
+  },
+  iconImage: {
+    width: 23.5,
+    height: 23.5,
+    right: -132,
+    resizeMode: 'contain',
+    opacity: 0.7,
   },
   welcomeText: {
     fontSize: 24,
@@ -512,7 +627,7 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#8616f6',
+    backgroundColor: '#7F15EA',
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderRadius: 20,
@@ -567,7 +682,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1F2937',
-    borderRadius: 24,
+    borderRadius: 58,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginHorizontal: 14,
@@ -575,14 +690,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 52,
+    minHeight: 50,
     maxHeight: 130,
     fontSize: 17,
     color: '#F9FAFB',
     fontFamily: 'sans-serif',
     paddingVertical: 14,
     paddingRight: 80,
-    paddingLeft: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -593,9 +707,10 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#888',
-    borderRadius: 20,
+    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
@@ -640,6 +755,76 @@ const styles = StyleSheet.create({
     marginRight: 6,
     resizeMode: 'contain',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#1F2937',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '50%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: '#E5E7EB',
+    fontFamily: 'sans-serif',
+  },
+  taskList: {
+    paddingBottom: 16,
+  },
+  taskItem: {
+    backgroundColor: '#2D3748',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  taskType: {
+    fontSize: 14,
+    color: '#8B5CF6',
+    fontWeight: 'bold',
+    fontFamily: 'sans-serif',
+    marginBottom: 4,
+  },
+  taskText: {
+    fontSize: 16,
+    color: '#E5E7EB',
+    fontFamily: 'sans-serif',
+  },
+  taskDateTime: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 4,
+    fontFamily: 'sans-serif',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 20,
+    fontFamily: 'sans-serif',
+  },
+  clearButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginRight: 10,
+  },
+  clearButtonText: {
+    fontSize: 17,
+    color: '#ff6363',
+    fontFamily: 'sans-serif',
+    fontWeight: '600',
   },
 });
 
