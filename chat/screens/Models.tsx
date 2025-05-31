@@ -166,11 +166,12 @@ const initialModels: Model[] = [
     description: 'Instruction following, Summarization, Rewriting'
   },
 ];
-
 const ModelsScreen = ({ navigation }) => {
   const [models, setModels] = useState<Model[]>(initialModels);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeDownload, setActiveDownload] = useState<string | null>(null);
+  const abortControllers = React.useRef(new Map<string, AbortController>());
 
   // Load saved models and selection
   useEffect(() => {
@@ -195,6 +196,12 @@ const ModelsScreen = ({ navigation }) => {
     };
 
     loadModels();
+
+    // Cleanup on component unmount
+    return () => {
+      abortControllers.current.forEach(controller => controller.abort());
+      abortControllers.current.clear();
+    };
   }, []);
 
   const verifyModelFiles = async (modelList: Model[]) => {
@@ -208,7 +215,30 @@ const ModelsScreen = ({ navigation }) => {
     await AsyncStorage.setItem('models', JSON.stringify(updatedModels));
   };
 
+  const handleDownloadError = async (modelId: string) => {
+    const model = models.find(m => m.id === modelId)!;
+    if (model.localPath) {
+      try {
+        await RNFS.unlink(model.localPath);
+      } catch (err) {
+        console.error('Failed to delete partial download:', err);
+      }
+    }
+    setModels(prev => prev.map(m =>
+      m.id === modelId ? { ...m, isDownloading: false, progress: 0, localPath: null } : m
+    ));
+    setActiveDownload(null);
+    abortControllers.current.delete(modelId);
+    Alert.alert('Error', 'Download failed or was interrupted');
+  };
+
   const handleDownload = async (modelId: string) => {
+    if (activeDownload) {
+      
+      return;
+    }
+
+    setActiveDownload(modelId);
     setModels(prev => prev.map(m =>
       m.id === modelId ? { ...m, isDownloading: true, progress: 0 } : m
     ));
@@ -216,6 +246,8 @@ const ModelsScreen = ({ navigation }) => {
     try {
       const model = models.find(m => m.id === modelId)!;
       const localPath = `${MODELS_DIR}/${modelId}.gguf`;
+      const controller = new AbortController();
+      abortControllers.current.set(modelId, controller);
 
       await RNFS.downloadFile({
         fromUrl: model.downloadUrl,
@@ -229,7 +261,12 @@ const ModelsScreen = ({ navigation }) => {
         progressDivider: 1,
         begin: () => {
           console.log('Download started for:', modelId);
-        }
+        },
+        connectionTimeout: 30000,
+        readTimeout: 30000,
+        background: true,
+        cacheable: false,
+        signal: controller.signal
       }).promise;
 
       const updatedModels = models.map(m =>
@@ -244,8 +281,13 @@ const ModelsScreen = ({ navigation }) => {
 
       setModels(updatedModels);
       await saveModels(updatedModels);
+      setActiveDownload(null);
+      abortControllers.current.delete(modelId);
     } catch (error) {
-      handleDownloadError(modelId);
+      if (error.code === 'E_ABORTED') {
+        console.log('Download aborted for:', modelId);
+      }
+      await handleDownloadError(modelId);
     }
   };
 
@@ -277,7 +319,8 @@ const ModelsScreen = ({ navigation }) => {
   const selectModel = async (modelId: string) => {
     setSelectedModelId(modelId);
     await AsyncStorage.setItem(SELECTED_MODEL_KEY, modelId);
-navigation.navigate('Chat', { selectedModelId: modelId });  };
+    navigation.navigate('Chat', { selectedModelId: modelId });
+  };
 
   if (isLoading) {
     return (
@@ -352,7 +395,7 @@ navigation.navigate('Chat', { selectedModelId: modelId });  };
                   loading={item.isDownloading}
                   style={styles.button}
                   labelStyle={styles.buttonLabel}
-                  disabled={item.isDownloading}
+                  disabled={item.isDownloading || !!activeDownload}
                 >
                   Download
                 </Button>
