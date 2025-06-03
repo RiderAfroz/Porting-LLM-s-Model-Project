@@ -31,6 +31,6 @@ export const handleQA = async (context: LlamaContext, userInput: string): Promis
     return llmResponse;
   } catch (error) {
     console.warn('QA processing failed:', error);
-    return `⚠️ Error processing question. Please try again. Details: ${(error as Error).message}`;
+    return `⚠️ Error processing question. Please try again.`;
   }
 };

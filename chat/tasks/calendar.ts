@@ -161,7 +161,7 @@ export const handleCalendarEvent = async (
 
     console.warn('JSON parsing failed. Falling back to defaults:', error);
 
-    const fallbackMsg = `⚠️ Failed to parse response. Showing fallback event:\n📅 ${fallback.Event} at ${fallback.Time} on ${fallback.Date}\nRaw LLM Output: "${completionResponse?.text || completionResponse || 'unknown'}"`;
+    const fallbackMsg = `⚠️ Failed to add the event 📅. Try again...`;
 
     return fallbackMsg;
   }

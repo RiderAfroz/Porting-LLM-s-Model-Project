@@ -15,12 +15,12 @@ export const routeTask = async (
 
   const calendarKeywords = [
     'event',
+    'calendar',
     'set appointment',
-    'appointment date',
+    'appointment',
+    'remind me',
     'calendar entry',
-    'add to calendar',
-    'create event',
-    'reminder for',
+    'reminder',
     'book meeting',
     'schedule',
     'reminder',
