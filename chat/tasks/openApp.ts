@@ -62,7 +62,7 @@ export const handleOpenApp = async (
     }
 
     if (!appPackages[0]) {
-      return `I couldn't find a known app for "${userAppName}". Please try a different app.`;
+      return `Try again....... I couldn't find a known app for "${userAppName}". Please install "${userAppName}"`;
     }
 
     if (Platform.OS === 'android') {
@@ -75,12 +75,12 @@ export const handleOpenApp = async (
           return `Opening ${userAppName}...`;
         }
       }
-      return `App "${userAppName}" is not installed or cannot be launched.`;
+      return `App "${userAppName}" is not installed or cannot be launched.Please try after installing "${userAppName}"`;
     } else if (Platform.OS === 'ios') {
       const appUrlScheme = userAppName === 'chrome' ? 'googlechrome://' : `${userAppName}://`;
       const supported = await Linking.canOpenURL(appUrlScheme);
       if (!supported) {
-        return `App "${userAppName}" is not installed or URL scheme is unavailable.`;
+        return `App "${userAppName}" is not installed. Try another App`;
       }
       await Linking.openURL(appUrlScheme);
       return `Opening ${userAppName}...`;
@@ -88,8 +88,8 @@ export const handleOpenApp = async (
 
     return 'Platform not supported for launching apps.';
   } catch (err) {
-    console.warn('Open App failed:', err);
-    return `Failed to open app. ${err}`;
+    // console.warn('Try again.....', err);
+    return `Try again..... Failed to open App : ${err}`;
   }
 };
 
